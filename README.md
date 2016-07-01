@@ -108,6 +108,16 @@ spec:
 
 More info on the above can be found [here](http://docs.rancher.com/rancher/latest/en/kubernetes/ingress/)
 
+# Usage
+
+* When you have built the project and get the k8s environment ready, you can have a test by run a bash file：
+```
+#!/bin/bash
+
+export KUBERNETES_URL='http://localhost:8080'
+export HAPROXY_CONFIG='/etc/haproxy/haproxy.cfg'
+./ingress-controller
+```
 
 # To fix in the future release
 
