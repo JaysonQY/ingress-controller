@@ -1,4 +1,4 @@
-package provider
+package haproxy
 
 import (
 	"fmt"
@@ -7,22 +7,28 @@ import (
 	"os"
 	"os/exec"
 	"text/template"
+        "github.com/Sirupsen/logrus"
+        utils "github.com/rancher/ingress-controller/utils"
+        "github.com/rancher/ingress-controller/provider"
 )
 
 func init() {
-	// var config string
-	// if config = os.Getenv("HAPROXY_CONFIG"); len(config) == 0 {
-	// 	return
-	// }
-	// haproxyCfg := &haproxyConfig{
-	// 	ReloadCmd: "haproxy_reload",
-	// 	Config:    config,
-	// 	Template:  "/etc/haproxy/haproxy_template.cfg",
-	// }
-	// lbp := HAProxyProvider{
-	// 	cfg: haproxyCfg,
-	// }
-	// RegisterProvider(lbp.GetName(), &lbp)
+	var config string
+	if config = os.Getenv("HAPROXY_CONFIG"); len(config) == 0 {
+                logrus.Info("HAPROXY_CONFIG is not provided.")
+		return
+	} else {
+                logrus.Info("HAPROXY_CONFIG is  provided.")
+        }
+	haproxyCfg := &haproxyConfig{
+		ReloadCmd: "/etc/haproxy/haproxy_reload",
+		Config:    config,
+		Template:  "/etc/haproxy/haproxy_template.cfg",
+	}
+	lbp := HAProxyProvider{
+		cfg: haproxyCfg,
+	}
+	provider.RegisterProvider(lbp.GetName(), &lbp)
 }
 
 type HAProxyProvider struct {
@@ -64,10 +70,27 @@ func (lbc *HAProxyProvider) GetName() string {
 	return "haproxy"
 }
 
-func (lbc *HAProxyProvider) GetPublicEndpoint(lbName string) string {
-	return "127.0.0.1"
+func (lbc *HAProxyProvider) GetPublicEndpoints(lbName string) []string {
+        arr := []string{} 
+	return arr
 }
 
+func (lbc *HAProxyProvider) IsHealthy() bool {
+        return true
+}
+
+func (lbc *HAProxyProvider) Stop() error{
+        return nil
+}
+
+func (lbc *HAProxyProvider) Run(syncEndpointsQueue *utils.TaskQueue) {
+        logrus.Infof("shutting down kubernetes-ingress-controller")
+}
+
+func (lbc *HAProxyProvider) CleanupConfig(name string) error {
+        return nil 
+}
+ 
 func (cfg *haproxyConfig) reload() error {
 	output, err := exec.Command("sh", "-c", cfg.ReloadCmd).CombinedOutput()
 	msg := fmt.Sprintf("%v -- %v", cfg.Name, string(output))
