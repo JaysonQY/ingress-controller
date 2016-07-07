@@ -7,4 +7,5 @@ import (
 	//lb providers
 	_ "github.com/rancher/ingress-controller/provider/haproxy"
 	//_ "github.com/rancher/ingress-controller/provider/rancher"
+	_ "github.com/rancher/ingress-controller/provider/nginx"
 )
