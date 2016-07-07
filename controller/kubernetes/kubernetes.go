@@ -25,13 +25,24 @@ import (
 	"k8s.io/kubernetes/pkg/watch"
 	"os"
 	"strconv"
+        "io/ioutil"
+        "log"
 )
 
 var (
 	flags        = pflag.NewFlagSet("", pflag.ExitOnError)
 	resyncPeriod = flags.Duration("sync-period", 30*time.Second,
 		`Relist and confirm cloud resources this often.`)
+        
 )
+
+func getSslData(path string) []byte{
+        b, err := ioutil.ReadFile(path)
+        if err != nil{
+                log.Fatalf("", err)
+        }
+        return b
+}
 
 func init() {
 	var server string
@@ -43,6 +54,12 @@ func init() {
 		Host:          server,
 		ContentConfig: restclient.ContentConfig{GroupVersion: &unversioned.GroupVersion{Version: "v1"}},
 	}
+        var certpath string
+        if certpath = os.Getenv("CERT_PATH"); len(certpath) != 0 {
+                config.CertData = getSslData("/home/ssl/admin.pem")
+                config.KeyData = getSslData("/home/ssl/admin-key.pem")
+                config.CAData = getSslData("/home/ssl/ca.pem")
+        }
 	kubeClient, err := client.New(config)
 
 	if err != nil {
@@ -202,11 +219,10 @@ func (lbc *loadBalancerController) sync(key string) {
 		return
 	}
 	requeue := false
-	for _, cfg := range lbc.GetLBConfigs() {
-		if err := lbc.lbProvider.ApplyConfig(cfg); err != nil {
-			logrus.Errorf("Failed to apply lb config on provider: %v", err)
-			requeue = true
-		}
+	
+	if err := lbc.lbProvider.ApplyConfig(lbc.GetLBConfigs()); err != nil {
+		logrus.Errorf("Failed to apply lb config on provider: %v", err)
+		requeue = true
 	}
 	if requeue {
 		lbc.syncQueue.Requeue(key, fmt.Errorf("retrying sync as one of the configs failed to apply on a backend"))

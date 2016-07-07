@@ -9,7 +9,7 @@ import (
 const Localhost = "localhost"
 
 type LBProvider interface {
-	ApplyConfig(lbConfig *config.LoadBalancerConfig) error
+	ApplyConfig(lbConfig []*config.LoadBalancerConfig) error
 	GetName() string
 	GetPublicEndpoints(configName string) []string
 	CleanupConfig(configName string) error

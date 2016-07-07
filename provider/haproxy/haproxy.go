@@ -42,24 +42,33 @@ type haproxyConfig struct {
 	Template  string
 }
 
-func (cfg *haproxyConfig) write(lbConfig *config.LoadBalancerConfig) (err error) {
-	var w io.Writer
-	w, err = os.Create(cfg.Config)
-	if err != nil {
-		return err
-	}
-	var t *template.Template
-	t, err = template.ParseFiles(cfg.Template)
-	if err != nil {
-		return err
-	}
-	conf := make(map[string]interface{})
-	conf["frontends"] = lbConfig.FrontendServices
-	err = t.Execute(w, conf)
-	return err
+func (cfg *haproxyConfig) write(lbConfig []*config.LoadBalancerConfig) (err error) {
+        files := [3]string{"frontend.cfg", "use.cfg", "backend.cfg"}
+        for _, value := range files { 
+		var w io.Writer
+		w, err = os.Create("/etc/haproxy/" + value)
+		if err != nil {
+			return err
+		}
+		var t *template.Template
+		t, err = template.ParseFiles("/etc/haproxy/haproxy_" + value)
+		if err != nil {
+			return err
+		}
+		conf := make(map[string]interface{})
+		conf["lbconf"] = lbConfig
+		logrus.Info("Get Conf %v", conf) 
+		err = t.Execute(w, conf)
+        }
+        var cmd string
+        cmd = "cat /etc/haproxy/frontend.cfg  /etc/haproxy/use.cfg /etc/haproxy/backend.cfg > /etc/haproxy/haproxy_tmp.cfg"
+        output, err := exec.Command("sh", "-c", cmd).CombinedOutput()
+        exec.Command("sh", "-c", "sed '/^$/d' /etc/haproxy/haproxy_tmp.cfg > /etc/haproxy/haproxy.cfg").CombinedOutput()
+        fmt.Sprintf("%v ", string(output))
+        return err
 }
 
-func (lbc *HAProxyProvider) ApplyConfig(lbConfig *config.LoadBalancerConfig) error {
+func (lbc *HAProxyProvider) ApplyConfig(lbConfig []*config.LoadBalancerConfig) error {
 	if err := lbc.cfg.write(lbConfig); err != nil {
 		return err
 	}
