@@ -1,8 +1,10 @@
-FROM hub.qingyuanos.com/admin/haproxy
+FROM ubuntu:trusty
 MAINTAINER  Jayson  <yjge@qingyuanos.com>
 
+RUN echo "deb http://mirrors.aliyun.com/ubuntu precise main universe" > /etc/apt/sources.list
+RUN apt-get update
+RUN apt-get install -y nginx
+
 COPY ingress-controller  /
-COPY ./provider/haproxy/haproxy_reload  /etc/haproxy/
-COPY ./provider/haproxy/*.cfg  /etc/haproxy/
-RUN chmod +x /etc/haproxy/haproxy_reload
-CMD ["/ingress-controller"]
+COPY ./provider/nginx/nginx_template.cfg  /etc/nginx/
+CMD ["/ingress-controller", "--lb-provider=nginx"]

@@ -1,7 +1,7 @@
 package nginx
 
 import (
-	fmt"
+	"fmt"
 	"github.com/rancher/ingress-controller/config"
 	"io"
 	"os"
@@ -23,11 +23,13 @@ func init() {
 	nginxCfg := &nginxConfig {
 		ReloadCmd: "nginx -s reload",
                 Config: config,
-		Template: "/etc/nginx/nginx_template.cfg"
+		Template: "/etc/nginx/nginx_template.cfg",
         }
 	lbp := NginxProvider {
-		cfg: nginxCfg
+		cfg: nginxCfg,
         }
+	output, _ := exec.Command("sh", "-c", "nginx").CombinedOutput()
+        fmt.Sprintf("%v", string(output))
 	provider.RegisterProvider(lbp.GetName(), &lbp)
 }
 
@@ -50,7 +52,7 @@ func (lbp *NginxProvider) Stop() error {
 	return nil
 }
 
-func (lbp *NginxProvider) GetName() {
+func (lbp *NginxProvider) GetName() string {
 	return "nginx"
 }
 
@@ -83,6 +85,20 @@ func (cfg *nginxConfig) reload() error {
 	return nil
 }
 
-func (lbp *NginxProvider) write(lbConfig []*config.LoadBalancerConfig) (err error) {
+func (lbp *nginxConfig) write(lbConfig []*config.LoadBalancerConfig) (err error) {
+	var w io.Writer
+	w, err = os.Create("/etc/nginx/nginx.conf")
+	if err != nil {
+		return err
+	}
+	var t *template.Template
+	t, err = template.ParseFiles("/etc/nginx/nginx_template.cfg")
+	if err != nil {
+		return err
+	}
+	conf := make(map[string]interface{})
+	conf["lbconf"] = lbConfig
+	logrus.Info("Get Conf %v", conf) 
+	err = t.Execute(w, conf)
 	return err
 }
